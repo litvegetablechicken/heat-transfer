@@ -1,36 +1,15 @@
-function F = double_pipe_residual(x, inpL, inpE, inpW)
-% double_pipe_residual
-% 外部残差函数：供 fsolve 调用
-%
-% x = [Tw_d(1:Nz); Tw_do(1:Nz)]
-% F = [ (q_liquid - q_wall_inner);
-%       (q_external - q_wall_outer) ]
-
-Nz = inpW.Nz;
+function F = double_pipe_residual(x, param)
+Nz = param.geom.Nz;
 
 Tw_d  = x(1:Nz);
-Tw_do = x(Nz+1:end);
+Tw_do = x(Nz+1:end-1);
+param.geom.L = x(end);
+outW = wall(param, Tw_d, Tw_do);
+outL = Liquid(param, Tw_d);
+outE = external_tube(param, Tw_do);
 
-% --- wall ---
-inpW_loc = inpW;
-inpW_loc.Tw_d  = Tw_d;
-inpW_loc.Tw_do = Tw_do;
-outW = wall(inpW_loc);
-
-% --- Liquid (inner) ---
-inpL_loc = inpL;
-inpL_loc.T_w = Tw_d;
-outL = Liquid(inpL_loc);
-
-% --- External tube (outer) ---
-inpE_loc = inpE;
-inpE_loc.T_w = Tw_do;
-outE = external_tube(inpE_loc);
-
-% residuals (strict equal heat flux as requested)
 r_inner = outL.q    - outW.q_d;
 r_outer = outE.q_ex - outW.q_do;
-
-F = [r_inner; r_outer];
-
+r_Tbp = ones(param.geom.Nz,1) * (outL.T(end) - param.liquid.Tbp);
+F = [r_inner; r_outer;r_Tbp];
 end

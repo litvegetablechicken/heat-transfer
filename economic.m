@@ -1,0 +1,22 @@
+function cost = economic(Wt, Wp, Area)
+    cost.ztb1 = 4405*((Wt(1))/1000)^0.89;    % cost of ORC turnines W:[kW]($) 2021ecm
+    cost.zpu1 = 1120*((Wp(1))/1000)^0.8;        % cost of ORC pumps W:[kW]($) 2020ecm teg
+    cost.zevap1 = 1397*(Area)^0.89;   % cost of ORC condensers ($) 2021ecm
+    cost.tic = cost.zevap1 + cost.ztb1 + cost.zpu1; % total equipment installed cost ($)
+    DCC = 127 / 100 * tic;
+    ICC = 20.5 / 100 * DCC;
+    TCC = DCC + ICC; 
+    contingency = 10 / 100 * TCC;
+    cost.FCI = TCC + contingency;
+    i = 8 / 100;
+    n = 25;
+    rn = 2 / 100;
+    alpha = i * (1 + i) ^ n / ((1 + i) ^ n - 1);
+    k = (1 + rn) / (1 + i);
+    lamda = k * (1 - k ^ n) / (1 - k) * alpha;
+    cost.IC = alpha * cost.FCI + 1.5 / 100 * tic;
+    cost.OC = tic * 2 / 100;
+    cost.totalCost = (alpha * cost.FCI + cost.IC + lamda * cost.OC) / (( Wt - Wp) / 1000 * 8000); % $/kWh
+    cost.alpha = alpha;
+    cost.lamda = lamda;
+end

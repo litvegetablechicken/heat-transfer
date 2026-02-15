@@ -1,6 +1,6 @@
-function out = external_tube(param, Tw_do)
+function out = external_tube(param, Tw_do,L)
 Nz = param.geom.Nz;
-L  = param.geom.L;
+
 
 V   = param.external.V;
 rho = param.external.density_ex;
@@ -24,7 +24,7 @@ if numel(Tw) ~= Nz
 end
 
 % 网格
-z  = linspace(0, L, Nz).';
+z  = linspace(0, 1, Nz).';
 dz = z(2)-z(1);
 
 % 质量相关
@@ -77,7 +77,7 @@ end
 h_ex(end) = h_const;
 q_ex(end) = h_ex(end) * (T_ex(end) - Tw(end));
 
-out.z    = z;
+out.z    = z*L;
 out.T_ex = T_ex;
 out.h_ex = h_ex;
 out.q_ex = q_ex;

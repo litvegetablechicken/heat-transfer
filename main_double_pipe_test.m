@@ -1,7 +1,7 @@
 clear; clc; close all
 %% ========= 0) 设定参数 =========
-Nz = 101*4;
-L  = 0.2961;
+Nz = 101;
+% L  = 0.2961;
 
 Di = 7.9E-3;
 Do = 9.5E-3;
@@ -15,8 +15,8 @@ G_ex = 211.0;
 param = struct();
 
 % --- 网格/几何 ---
-param.geom.Nz = Nz;
-param.geom.L  = 0;
+param.geom.NzL = Nz;
+
 
 param.geom.Di = Di;
 param.geom.Do = Do;
@@ -31,13 +31,13 @@ param.wall.kw = kw;  % thermal_cond_wall
 
 % --- liquid side ---
 param.liquid.G  = G; % 你原来的 G（用于算 m = G*A_i）
-param.liquid.Tbp = 28.6+273.15;
+param.liquid.Tbp = 22+273.15;
 param.liquid.m            = param.liquid.G * param.geom.A_i;
 param.liquid.density      = 1175.4;
 param.liquid.viscosity    = 0.00015749;
 param.liquid.thermal_cond = 0.081729;
 param.liquid.heat_capacity= 1.2749;         % kJ/kgK
-param.liquid.T_in         = 22.0 + 273.15;  % K
+param.liquid.T_in         = 28.6 + 273.15;  % K
 
 % --- external/annulus side ---
 param.external.G_ex = G_ex;
@@ -50,11 +50,20 @@ param.external.thermal_cond_ex  = 0.633815;
 param.external.heat_capacity_ex = 4.18095625;  % kJ/kgK
 param.external.dir              = 1;
 param.external.energy_balance_cal = "energy_bal";
-param.external.T_in_ex          = 55.5 + 273.15; % K
+param.external.T_in_ex          = 55.5+273.15; % K
+% --- sub_annular side ---
+
+param.sub_annular.P       = 11.5;   % 系统压力
+param.sub_annular.Pc      = 43.96;   % 临界压力
+param.sub_annular.Mw      = 86.48;   % 分子量
+param.sub_annular.DH_vap  = 178.83*1E3;   % 汽化潜热 J/kg
+param.sub_annular.g       = 9.81;
+param.sub_annular.rhoL    = 1175.4;   % 液相密度
+param.sub_annular.rhoV    = 49.148;   % 汽相密度
 
 %% ========= 1) fsolve 初值 =========
-Nz = param.geom.Nz;
-
+Nz = param.geom.NzL;
+param.geom.Nz = param.geom.NzL;
 Tw_d0  = linspace((param.liquid.T_in + param.external.T_in_ex)/2, ...
                   (param.liquid.T_in + param.external.T_in_ex)-1, Nz).';
 
@@ -69,9 +78,9 @@ opts = optimoptions('fsolve', ...
     'FunctionTolerance',1e-8, ...
     'StepTolerance',1e-15, ...
     'MaxIterations',200, ...
-    'MaxFunctionEvaluations',2e5);
+    'MaxFunctionEvaluations',2e5,'UseParallel',true);
 
-[xsol, fval, exitflag, output] = fsolve(@(x) double_pipe_residual(x, param), x0, opts);
+[xsol, fval, exitflag, output] = fsolve(@(x) double_pipe_residual_liquid(x, param), x0, opts);
 
 fprintf("\n==== fsolve finished ====\n");
 fprintf("exitflag = %d\n", exitflag);
@@ -79,10 +88,10 @@ disp(output.message);
 
 Tw_d  = xsol(1:Nz);
 Tw_do = xsol(Nz+1:end-1);
-param.geom.L = xsol(end);
+L1 = xsol(end);
 %% ========= 3) 用解重新计算 =========
-outL = Liquid(param, Tw_d);
-outE = external_tube(param, Tw_do);
+outL = sub_annular(param, Tw_d,L1);
+outE = external_tube(param, Tw_do,L1);
 outW = wall(param, Tw_d, Tw_do);
 
 %% ========= 4) 结果展示 =========

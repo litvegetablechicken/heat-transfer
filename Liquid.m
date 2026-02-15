@@ -1,6 +1,5 @@
-function out = Liquid(param, Tw_d)
-Nz = param.geom.Nz;
-L  = param.geom.L;
+function out = Liquid(param, Tw_d,L)
+Nz = param.geom.NzL;
 
 m              = param.liquid.m;
 density        = param.liquid.density;
@@ -13,7 +12,7 @@ cross_area     = param.geom.A_i;
 T_in = param.liquid.T_in;
 
 % 网格
-z  = linspace(0, L, Nz).';
+z  = linspace(0, 1, Nz).';
 dz = z(2)-z(1);
 
 % 质量相关
@@ -51,7 +50,7 @@ end
 h_z(end) = h_const;
 q(end)   = h_z(end) * (Tw(end) - T(end));
 
-out.z  = z;
+out.z  = z*L;
 out.T  = T;
 out.h  = h_z;
 out.q  = q;

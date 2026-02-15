@@ -1,12 +1,13 @@
-function F = double_pipe_residual(x, param)
-Nz = param.geom.Nz;
+function F = double_pipe_residual_liquid(x, param)
+Nz = param.geom.NzL;
 
 Tw_d  = x(1:Nz);
 Tw_do = x(Nz+1:end-1);
+L_L = x(end);
 param.geom.L = x(end);
 outW = wall(param, Tw_d, Tw_do);
-outL = Liquid(param, Tw_d);
-outE = external_tube(param, Tw_do);
+outL = Liquid(param, Tw_d,L_L);
+outE = external_tube(param, Tw_do, L_L);
 
 r_inner = outL.q    - outW.q_d;
 r_outer = outE.q_ex - outW.q_do;

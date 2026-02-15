@@ -43,7 +43,7 @@ cpJ  = heat_capacity*1e3;
 for k = 1:Nz-1
     h_z(k) = h_const;
     q(k)   = h_z(k) * (Tw(k) - T(k));
-    dTdz   = (4*q(k)) / (G * cpJ * inner_diameter);
+    dTdz   = (4*L*q(k)) / (G * cpJ * inner_diameter);
     T(k+1) = T(k) + dTdz*dz;
 end
 

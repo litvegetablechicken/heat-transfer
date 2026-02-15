@@ -9,8 +9,8 @@ De = 16.0E-3;
 kw = 385.0;
 G  = 289.0;
 G_ex = 211.0; 
-NzL = 100+1;          % Liquid 段网格数
-NzSA = 100+1;          % sub_annular 段网格数
+NzL = 101;          % Liquid 段网格数
+NzSA = 101*2;          % sub_annular 段网格数
 Nz   = NzL + NzSA;      % 总网格数（壁温/外侧共用）
 %% ========= 0) 统一参数 param =========
 param = struct();
@@ -65,10 +65,10 @@ Tw_guess = (param.liquid.T_in + param.external.T_in_ex)/2;
 Tw_d0  = Tw_guess * ones(Nz,1);
 Tw_do0 = Tw_guess * ones(Nz,1);
 
-L_L0 = 0.05;           % Liquid 段初猜长度
-L_SA0 = 0.25;           % sub_annular 段初猜长度
+L10 = 0.05;           % Liquid 段初猜长度
+L20 = 0.25;           % sub_annular 段初猜长度
 
-x0 = [Tw_d0; Tw_do0; L_L0; L_SA0];
+x0 = [Tw_d0; Tw_do0; L10; L20];
 
 opts = optimoptions('fsolve', ...
     'Display','iter', ...
@@ -115,4 +115,10 @@ plot(z, T_in-273.15, z, outE.T_ex-273.15, z, Tw_d-273.15, z, Tw_do-273.15);
 grid on; xlabel('z (m)'); ylabel('T (°C)');
 legend('T_{in}','T_{ex}','T_{w,d}','T_{w,do}');
 
+figure;
+plot(z, q_in, z, outW.q_d); grid on
+xlabel('z (m)'); ylabel('q'); legend('q_{in}','q_d');
 
+figure;
+plot(z, outE.q_ex, z, outW.q_do); grid on
+xlabel('z (m)'); ylabel('q'); legend('q_{ex}','q_{do}');

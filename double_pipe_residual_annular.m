@@ -1,0 +1,35 @@
+function F = double_pipe_residual_annular(x, param, state0)
+% x = [Tw_d(1:N); Tw_do(1:N); L; delta(1:N)]
+N = param.geom.Nz;
+
+Tw_d  = x(1:N);
+Tw_do = x(N+1:2*N);
+% L     = x(2*N+1);
+% delta = x(2*N+2:end);
+L = param.L;
+delta = x(2*N+1:end);
+% 基本物理约束（避免进入 1-2*delta/Di <= 0 导致奇异）
+Di = param.geom.Di;
+if any(delta <= 0) || any(delta >= 0.49*Di)
+    % 直接用大残差“推回可行域”（比报错更利于 fsolve 收敛）
+    F = 1e6*ones(3*N,1);
+    return
+end
+
+outW = wall(param, Tw_d, Tw_do);
+outA = annular(param, Tw_d, L, delta, state0);
+outE = external_tube(param, Tw_do, L);
+
+r_inner = outA.q    - outW.q_d;        % N
+r_outer = outE.q_ex - outW.q_do;       % N
+
+% delta 自洽：delta_in - delta_new = 0
+r_delta = outA.delta_term*1e3;             % N
+
+
+r_term = outA.term; % 1
+
+% F = [r_inner; r_outer; r_delta; r_term];
+F = [r_inner; r_outer; r_delta];
+
+end

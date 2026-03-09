@@ -94,16 +94,16 @@ Ltot  = L1 + L2;
 Tw_d1  = Tw_d(1:NzL);
 Tw_d2  = Tw_d(NzL+1:end);
 
-outL1 = Liquid(param, Tw_d1, L1);
-outL2 = sub_annular(param, Tw_d2, L2);
+out_L = Liquid(param, Tw_d1, L1);
+out_SA = sub_annular(param, Tw_d2, L2);
 
 % 拼成总内侧 q_in 和 T（便于画图）
-z1 = outL1.z;
-z2 = outL2.z + L1;
+z1 = out_L.z;
+z2 = out_SA.z + L1;
 z  = [z1; z2];
 
-q_in = [outL1.q; outL2.q];
-T_in = [outL1.T; outL2.T];    % sub_annular 是常数Tbp
+q_in = [out_L.q; out_SA.q];
+T_in = [out_L.T; out_SA.T];    % sub_annular 是常数Tbp
 
 % 外侧与壁（用总长度Ltot、总网格N）
 outE = external_tube(param, Tw_do, Ltot);

@@ -1,5 +1,5 @@
-function out = external_tube_q(param, q_ex_in, L)
-Nz = param.geom.Nz;
+function out = external_tube_q(param, q_ex_in, L,Nz)
+% Nz = param.geom.Nz;
 
 V   = param.external.V;
 rho = param.external.density_ex;

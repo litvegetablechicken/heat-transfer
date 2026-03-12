@@ -1,0 +1,33 @@
+function F = double_pipe_residual_L_SA_q(x, param)
+Nz  = param.geom.Nz;
+NzL = param.geom.NzL;
+NzSA = param.geom.NzSA;
+q_d = x(1:Nz);
+q_do = x(Nz + 1 : 2*Nz);
+q_d_L = q_d(1:NzL);
+q_d_SA = q_d(NzL+1 : end);
+L_L  = x(end-1);
+L_SA = x(end);
+L_total = L_L + L_SA;
+
+%% Liquid
+out_liquid = Liquid_q(param, q_d_L, L_L);
+%% SA
+Boundary.SA.G_L = out_liquid.G;
+Boundary.SA.G_V = 0;
+out_SA = sub_annular_q(param,Boundary,q_d_SA,L_SA);
+%% wall 
+out_wall   = wall_q(param, q_d, q_do);
+%% external tube
+outE       = external_tube_q(param, q_ex_in,L_L,L_SA);
+
+%% Liquid 停止条件
+r_bp  = out_liquid.T(end) - param.liquid.Tbp;              % 1x1
+%% SA 停止条件
+r_term = out_SA.term;
+%% 壁面传热误差
+r_dT  = out_wall.dT_diff;                                   % Nz x 1
+r_dT2 = [out_liquid.Tw;out_SA.Tw] - outE.Tw - out_wall.dT;
+%% 总误差
+F = [r_dT;r_dT2;r_bp;r_term];
+end

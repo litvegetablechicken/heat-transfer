@@ -6,7 +6,7 @@ De = 16.0E-3;
 kw = 385.0;
 G  = 289.0;
 G_ex = 211.0; 
-NzL = 1001;          % Liquid 段网格数
+NzL = 101;          % Liquid 段网格数
 Nz = NzL;           % 总网格数
 %% ========= 0) 统一参数 param =========
 param = struct();
@@ -28,7 +28,7 @@ param.liquid.m            = param.liquid.G * param.geom.A_i;
 param.liquid.density      = 1175.4;
 param.liquid.viscosity    = 0.00015749;
 param.liquid.thermal_cond = 0.081729;
-param.liquid.heat_capacity= 1.2749*1000;         % kJ/kgK
+param.liquid.heat_capacity= 1.2749*1000;         % J/kgK
 param.liquid.T_in         = 22 + 273.15;  % K
 %% --- external/annulus side ---
 param.external.G_ex = G_ex;

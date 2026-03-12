@@ -1,7 +1,5 @@
 function out = wall_q(param, q_d, q_do)
 
-Nz = param.geom.Nz;
-
 Di = param.geom.Di;
 Do = param.geom.Do;
 kw = param.wall.kw;
@@ -9,9 +7,6 @@ kw = param.wall.kw;
 q_d  = q_d(:);
 q_do = q_do(:);
 
-if numel(q_d) ~= Nz || numel(q_do) ~= Nz
-    error("wall_param:SizeMismatch","q_d and q_do must be length Nz.");
-end
 
 logR = log(Di/Do);
 

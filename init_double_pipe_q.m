@@ -41,7 +41,7 @@ q_do0 = q_init * ones(Nz,1);
 if isfield(param.geom,'L')
     x0 = [q_d0; q_do0];
 else
-    L0 = [1];   % 默认1 m
+    L0 = [1;1];   % 默认1 m
     x0 = [q_d0; q_do0; L0];
    
 end

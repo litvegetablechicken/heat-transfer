@@ -67,10 +67,10 @@ Tw_d0  = 320.467024683289 * ones(Nz,1);
 Tw_do0 = 320.501859537161 * ones(Nz,1);
 
 L10 = 0.05;           % Liquid 段初猜长度
-% L20 = 0.25;           % sub_annular 段初猜长度
+L20 = 0.25;           % sub_annular 段初猜长度
 
-% x0 = [Tw_d0; Tw_do0; L10; L20];
-x0 = [Tw_d0; Tw_do0; L10];
+x0 = [Tw_d0; Tw_do0; L10; L20];
+% x0 = [Tw_d0; Tw_do0; L10];
 opts = optimoptions('fsolve', ...
     'Display','iter', ...
     'FunctionTolerance',1e-8, ...
@@ -79,25 +79,25 @@ opts = optimoptions('fsolve', ...
     'MaxFunctionEvaluations',2e5, ...
     'UseParallel',true);
 
-[xsol,~,exitflag,output] = fsolve(@(x) double_pipe_residual_liquid(x,param), x0, opts);
+[xsol,~,exitflag,output] = fsolve(@(x) double_pipe_L_SA_test(x,param), x0, opts);
 
 disp(output.message); fprintf("exitflag=%d\n",exitflag);
 
 %% ===== 2) 解包 =====
 Tw_d  = xsol(1:Nz);
 Tw_do = xsol(Nz+1:2*Nz);
-% L1    = xsol(end-1);
-% L2    = xsol(end);
-L1 = xsol(end);
-Ltot  = L1 ;
+L1    = xsol(end-1);
+L2    = xsol(end);
+% L1 = xsol(end);
+% Ltot  = L1 ;
 
 %% ===== 3) 后处理：三模块重新算一遍 =====
 % 内侧分段
 Tw_d1  = Tw_d(1:NzL);
-% Tw_d2  = Tw_d(NzL+1:end);
+Tw_d2  = Tw_d(NzL+1:end);
 Tw_d2=[];
 outL1 = Liquid(param, Tw_d1, L1);
-% outL2 = sub_annular(param, Tw_d2, L2);
+outL2 = sub_annular(param, Tw_d2, L2);
 
 % 拼成总内侧 q_in 和 T（便于画图）
 z = outL1.z;

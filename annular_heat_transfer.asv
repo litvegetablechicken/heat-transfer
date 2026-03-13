@@ -185,8 +185,7 @@ for i=1:Nz
     rho_C(i)=(G_ED(i)+G_V(i))/(G_ED(i)/rhoED+G_V(i)/rhoV+1e-20);
     Re_C(i)=rho_C(i)*u_C(i)*Di/muV;
     % 计算通过三角关系计算液膜厚度
-    delta_0 = Di / 10;
-    delta(i) = fsolve(@(x)cal_delta(x,Di,G_ED(i),rhoED,G_V(i),rhoV,rhoL,u_L(i),muL,Re_C(i),rho_C,G_L(i)),delta_0);
+    delta(i) = fsolve(@(x)cal_delta(x,Di,G_ED(i),rhoED,G_V(i),rhoV,rhoL,u_L,muL,Re_C,rho_C));
     core_void_factor=max(1e-8,(1-2*delta(i)/Di)^2);
     u_C(i)=(G_ED(i)/rhoED+G_V(i)/rhoV)/core_void_factor;
 
@@ -360,7 +359,7 @@ Q_total=sum(q_r*dA);
 %% -------------------------------------------------
 % output
 %% -------------------------------------------------
-out.term = G_L(end);
+out.term = G_L();
 out.z=z*L;
 
 out.q=q_r;
@@ -387,7 +386,7 @@ end
 
 
 %% ==========================================================
-function F = cal_delta(x,Di,G_ED,rhoED,G_V,rhoV,rhoL,u_L,muL,Re_C,rho_C,G_L)
+function F = cal_delta(x,Di,G_ED,rhoED,G_V,rhoV,rhoL,u_L,muL,Re_C,rho_C)
 delta = x;
 core_void_factor=max(1e-8,(1-2*delta/Di)^2);
 

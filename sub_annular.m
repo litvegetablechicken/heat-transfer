@@ -1,4 +1,4 @@
-function out = sub_annular(param, Tw_d,L)
+function out = sub_annular(param, Boundary,q_r,L)
 % sub_annaular  (入口纯液版，无 x_in)
 
 %% ---- 0) 读参数 ----

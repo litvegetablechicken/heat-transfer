@@ -67,7 +67,7 @@ g = 9.81;
 %% -------------------------------------------------
 % 1) Allocate variables
 %% -------------------------------------------------
-
+delta = zeros(Nz,1);
 G_L  = zeros(Nz,1);
 G_V  = zeros(Nz,1);
 G_ED = zeros(Nz,1);
@@ -183,12 +183,21 @@ for i=1:Nz
     m_ED(i)=G_ED(i)*A;
 
     rho_C(i)=(G_ED(i)+G_V(i))/(G_ED(i)/rhoED+G_V(i)/rhoV+1e-20);
-    Re_C(i)=rho_C(i)*u_C(i)*Di/muV;
+    
     % 计算通过三角关系计算液膜厚度
-    delta(i) = fsolve(@(x)cal_delta(x,Di,G_ED(i),rhoED,G_V(i),rhoV,rhoL,u_L,muL,Re_C,rho_C));
+    delta_0 = Di / 10;
+    options = optimoptions('fsolve', ...
+    'Display','iter', ...
+    'FunctionTolerance',1e-8, ...
+    'StepTolerance',1e-15, ...
+    'MaxIterations',20000, ...
+    'MaxFunctionEvaluations',2e5, ...
+    'UseParallel',false);
+    [delta_tem, fval, exitflag, output] = fsolve(@(x)cal_delta(x,Di,G_ED(i),rhoED,G_V(i),rhoV,rhoL,u_L(i),muL,muV,rho_C(i),G_L(i)),delta_0,options);
+    delta(i) = delta_tem;
     core_void_factor=max(1e-8,(1-2*delta(i)/Di)^2);
     u_C(i)=(G_ED(i)/rhoED+G_V(i)/rhoV)/core_void_factor;
-
+    Re_C(i)=rho_C(i)*u_C(i)*Di/muV;
     Re_G(i)=rhoV*u_V(i)*Di/muV;
     We_G(i)=rhoV*Di*u_V(i)^2/sigma;
 
@@ -255,7 +264,8 @@ for i=1:Nz
             h_nb(i)=55*(P/Pc)^0.12*(-log10(P/Pc))^(-0.55)*Mw^(-0.5)*(max(q_r(i),1e-12)^0.67);
             Nu_LF(i)=0.0133*(max(Re_LF(i),1e-12)^0.69)*(Pr_LF(i)^0.4);
             h_conv(i)=Nu_LF(i)*kL/max(delta(i),1e-12)/1e3;
-            h(i)=(h_nb(i)^3+h_conv(i)^3)^(1/3);
+            h_nb(i) = h_nb(i) /1e3;
+            h(i)=((h_nb(i)^3+h_conv(i)^3)^(1/3))*1e3;
         case 'correlation_1'
             % Correlation 1 Cooper [17]
             Fr_1 = ((G_L(i)/rhoL)^2)/(g*Di);
@@ -278,7 +288,7 @@ for i=1:Nz
             Sc_2 = 1/(1 + 2.53e-6*(Re(i)*(Fc_2^1.25))^1.17);
             fun = @(x)Tw_balance(x,T(i),h_conv_2,Sc_2,f,DHvap,q_r);
             x0 = T;
-            Tw = fsolve(fun,x0);
+            Tw = fsolve(fun,x0,options);
             DT_sat_2 = Tw - T(i);
             P_w = refpropm('P','T', Tw,'Q',0,f.name);
             DP_sat_2 = (P_w - P)*1e3;
@@ -342,7 +352,7 @@ for i=1:Nz
 
         G_ED(i+1)=max(0,G_ED(i)+dz*dG_ED_dz);
 
-        G_L(i+1)=max(0,G_L(i)+dz*dG_L_dz)
+        G_L(i+1)=max(0,G_L(i)+dz*dG_L_dz);
 
     end
 
@@ -359,7 +369,7 @@ Q_total=sum(q_r*dA);
 %% -------------------------------------------------
 % output
 %% -------------------------------------------------
-out.term = G_L();
+out.term = G_L(end);
 out.z=z*L;
 
 out.q=q_r;
@@ -386,13 +396,13 @@ end
 
 
 %% ==========================================================
-function F = cal_delta(x,Di,G_ED,rhoED,G_V,rhoV,rhoL,u_L,muL,Re_C,rho_C)
+function F = cal_delta(x,Di,G_ED,rhoED,G_V,rhoV,rhoL,u_L,muL,muV,rho_C,G_L)
 delta = x;
 core_void_factor=max(1e-8,(1-2*delta/Di)^2);
 
 u_C=(G_ED/rhoED+G_V/rhoV)/core_void_factor;
 Re_LF=rhoL*u_L*(4*delta)/muL;
-
+Re_C=rho_C*u_C*Di/muV;
 f_SC=0.079/(abs(Re_C+1e-6)^0.25);
 
 f_I=f_SC*(1+24*(delta/Di)*(rhoL/rhoV)^(1/3));
@@ -407,11 +417,13 @@ end
 G_LF = 4/Di * delta * sqrt(2 * tau_I * rhoL / f_LF);
 F = G_L - G_LF;
 end
+
+
 function F = Tw_balance(x,T,h_conv_2,Sc_2,f,DHvap,q_r)
 Tw = x;
 DT_sat_2 = Tw - T;
-P_w = refpropm('P','T', Tw,'Q',0,f.name);
-DP_sat_2 = (P_w - P)*1e3;
+P_w = refpropm('P','T', Tw,'Q',0,f.name)/1e2; %kPa 转成 bar
+DP_sat_2 = (P_w - P)*1e5;
 h_nb_2 = 0.00122 * ...
     ((kL^0.79)*((cpL)^0.45)*(rhoL^0.49)) / ...
     ((sigma^0.5)*(muL^0.29)*(rhoV^0.24)*((DHvap)^0.24)) * ...

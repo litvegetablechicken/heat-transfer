@@ -5,7 +5,7 @@ close all
 % 1  Geometry
 %% =========================================================
 
-param.geom.NzA = 1001;      % grid number
+param.geom.NzA = 101;      % grid number
 param.geom.Di  = 0.0093;   % inner diameter [m]
 
 % L = 1.0;                   % tube length [m]
@@ -52,7 +52,7 @@ param.fluid.C_ant = -28.665;
 
 param.model.entraintment_calculation = "cal_entraintment";
 
-param.model.h_calculation = "correlation_4";
+param.model.h_calculation = "correlation_0";
 
 %% =========================================================
 % 4  Initial state
@@ -78,14 +78,19 @@ Boundary.A.G_V = param.state0.G_V0;
 
 Nz = param.geom.NzA;
 
-q_r = 100e3 * ones(Nz,1);   % kW/m2
+q_r = 1000e3 * ones(Nz,1);   % kW/m2
 
 %% =========================================================
 % 7  Run annular model
 %% =========================================================
-x0 = 1;
+x0 = 0.5;
 opts = optimoptions('fsolve', ...
-    'Display','iter');
+    'Display','iter', ...
+    'FunctionTolerance',1e-8, ...
+    'StepTolerance',1e-15, ...
+    'MaxIterations',20000, ...
+    'MaxFunctionEvaluations',2e5, ...
+    'UseParallel',false);
 [x_sol, fval, exitflag, output] = fsolve(@(x) A_residual(x,param,q_r,Boundary), x0, opts);
 %% =========================================================
 % 8  Plot results
@@ -107,8 +112,6 @@ figure
 plot(out.z,out.delta,'LineWidth',2)
 xlabel('z (m)')
 ylabel('\delta (m)')
-legend('delta')
-
 grid on
 
 
@@ -116,7 +119,6 @@ figure
 plot(out.z,out.T_w,'LineWidth',2)
 xlabel('z (m)')
 ylabel('Wall temperature (K)')
-legend('Wall temperature')
 grid on
 
 
@@ -124,8 +126,6 @@ figure
 plot(out.z,out.h,'LineWidth',2)
 xlabel('z (m)')
 ylabel('h (kW/m^2K)')
-legend('h')
-
 grid on
 
 disp("Total heat transfer:")

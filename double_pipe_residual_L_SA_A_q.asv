@@ -16,7 +16,7 @@ q_do_A  = q_d(NzL + NzSA + 1: NzL + NzSA + NzA);
 L_L  = x(end-2);
 L_SA = x(end-1);
 L_A = x(end);
-L_total = L_L + L_SA + L_A;
+L_total = L_L + L_SA;
 
 %% Liquid
 out_liquid = Liquid_q(param, q_d_L, L_L);
@@ -34,20 +34,13 @@ out_SA = sub_annular_q(param,Boundary,q_d_SA,L_SA);
 out_wall_SA   = wall_q(param, q_d_SA, q_do_SA);
 outE_SA       = external_tube_q(param, q_do_SA, L_SA, NzSA);
 
-r_term_SA = out_SA.term;
+r_term = out_SA.term;
 r_dT_SA  = out_wall_SA.dT_diff;                                   % Nz x 1
 r_dT2_SA = (out_SA.Tw - outE_SA.Tw) - out_wall_SA.dT;            % Nz x 1
 
 %% A
-Boundary.A.G_L = out_SA.G_L(end);
-Boundary.A.G_V = out_SA.G_V(end);
-out_A = annular_heat_transfer(param, q_d_A,Boundary,L_A);
-out_wall_A   = wall_q(param, q_d_A, q_do_A);
-outE_A       = external_tube_q(param, q_do_A, L_A,NzA);
-r_dT_A  = out_wall.dT_diff;                                   % Nz x 1
-r_dT2_A = (out_A.Tw - outE.Tw) - out_wall.dT;            % Nz x 1
-r_term_A = out_A.term_A;
-F = [r_dT_A; r_dT2_A;r_term_A];
+Boundary.SA.G_L = out_SA.G_L(end);
+Boundary.SA.G_V = out_SA.G_V(end);
 %% 总误差
-F = [[r_dT_L;r_dT_SA;r_dT_A];[r_dT2_L;r_dT2_SA;r_dT2_A];r_bp;r_term_SA;r_term_A];
+F = [[r_dT_L;r_dT_SA];[r_dT2_L;r_dT2_SA];r_bp;r_term];
 end

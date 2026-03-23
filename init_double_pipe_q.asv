@@ -49,9 +49,8 @@ else
         L_SA = 1;   % 默认1 m
     end
     if isfield(param.geom,'NzA')
-        A = param.fluid.DH_vap * m / h /20;
-
-        L_A = A / pi /Di;   % 默认1 m
+        param.fluid.DH_vap * m / 
+        L_A = 1;   % 默认1 m
     end
     if isfield(param.geom,'NzM')
         L_M = 1;   % 默认1 m

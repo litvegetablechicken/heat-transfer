@@ -32,7 +32,7 @@ param.fluid.cpED = 4.2e3;
 
 param.fluid.sigma = 72.9E-3;
 
-param.fluid.DHvap = 2257*1e3;
+param.fluid.DH_vap = 2257*1e3;
 
 param.fluid.P  = 1;
 param.fluid.Pc = 217.0;
@@ -51,26 +51,21 @@ param.fluid.C_ant = -28.665;
 %% =========================================================
 
 param.model.entraintment_calculation = "cal_entraintment";
+param.model.delta_calculation        = true;
 
-param.model.h_calculation = "correlation_4";
+param.model.h_calculation = "correlation_0";
+param.model.calculate_entraintment_0 = true;
 
-%% =========================================================
-% 4  Initial state
-%% =========================================================
 
-param.state0.G_L0 = 297;
 
-param.state0.G_V0 = 50;
-
-param.state0.calculate_entraintment_0 = true;
 
 %% =========================================================
 % 5  Boundary conditions
 %% =========================================================
 
-Boundary.A.G_L = param.state0.G_L0;
+Boundary.A.G_L = 297;
 
-Boundary.A.G_V = param.state0.G_V0;
+Boundary.A.G_V = 50;
 
 %% =========================================================
 % 6  Wall heat flux initial guess
@@ -78,7 +73,7 @@ Boundary.A.G_V = param.state0.G_V0;
 
 Nz = param.geom.NzA;
 
-q_r = 100e3 * ones(Nz,1);   % kW/m2
+q_r = 1000e3 * ones(Nz,1);   % kW/m2
 
 %% =========================================================
 % 7  Run annular model
@@ -113,7 +108,7 @@ grid on
 
 
 figure
-plot(out.z,out.T_w,'LineWidth',2)
+plot(out.z,out.Tw,'LineWidth',2)
 xlabel('z (m)')
 ylabel('Wall temperature (K)')
 legend('Wall temperature')

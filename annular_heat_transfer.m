@@ -28,8 +28,7 @@ dz = z(2)-z(1);
 A = pi*(Di/2)^2;
 
 f = param.fluid;
-m = param.model;
-s = param.state0;
+model = param.model;
 
 rhoL = f.rhoL;
 rhoV = f.rhoV;
@@ -43,10 +42,9 @@ kV = f.kV;
 
 cpL = f.cpL;
 cpV = f.cpV;
-cpED = f.cpED;
 
 sigma = f.sigma;
-DHvap = f.DHvap;
+DHvap = f.DH_vap;
 
 P  = f.P;
 Pc = f.Pc;
@@ -152,15 +150,15 @@ h = zeros(Nz,1);
 
 G_V(1) = Boundary.A.G_V;
 G_L(1)=Boundary.A.G_L;
-if G_V(1)==0 || ~s.calculate_entraintment_0
+if G_V(1)==0 || ~model.calculate_entraintment_0
     G_ED(1)=1e-6;
 else
 
-    ratio = sqrt((rhoL*max(s.G_L0,1e-12))/(rhoV*G_V(1)))*Di^2;
+    ratio = sqrt((rhoL*max(G_L(1),1e-12))/(rhoV*G_V(1)))*Di^2;
 
     coeff = (1/(0.95e-2+342.55e-2*ratio)-1);
 
-    G_ED(1)=max(s.G_L0,1e-12)/max(coeff,1e-12);
+    G_ED(1)=max(G_L(1),1e-12)/max(coeff,1e-12);
 
 end
 
@@ -183,18 +181,23 @@ for i=1:Nz
     m_ED(i)=G_ED(i)*A;
 
     rho_C(i)=(G_ED(i)+G_V(i))/(G_ED(i)/rhoED+G_V(i)/rhoV+1e-20);
-    
+    w_frac_L = m_L(i) / rhoL / (m_V(i)/rhoV + m_ED(i) / rhoED +  m_L(i) / rhoL );
     % 计算通过三角关系计算液膜厚度
-    delta_0 = Di / 10;
-    options = optimoptions('fsolve', 'Display','off');
-    [delta_tem, ~, exitflag] = fsolve(@(x)cal_delta(x,Di,G_ED(i),rhoED,G_V(i),rhoV,rhoL,u_L(i),muL,muV,rho_C(i),G_L(i)),delta_0,options);
-    if exitflag <0
-        % error('error of delta calculation')
-        disp(i)
-    elseif exitflag == 0
-        error('MaxIterations exceeds MaxFunctionEvaluations')
+    delta_0 = 0.5*Di*w_frac_L;
+    if model.delta_calculation == true
+        options = optimoptions('fsolve', 'Display','off');
+        [delta_tem, ~, exitflag] = fsolve(@(x)cal_delta(x,Di,G_ED(i),rhoED,G_V(i),rhoV,rhoL,u_L(i),muL,muV,rho_C(i),G_L(i)),delta_0,options);
+        if exitflag <0
+            % error('error of delta calculation')
+            disp('error of delta calculation')
+        elseif exitflag == 0
+            disp('MaxIterations exceeds MaxFunctionEvaluations')
+        end
+        delta(i) = delta_tem;
+    else
+        delta(i) = delta_0;
+
     end
-    delta(i) = delta_tem;
     core_void_factor=max(1e-8,(1-2*delta(i)/Di)^2);
     u_C(i)=(G_ED(i)/rhoED+G_V(i)/rhoV)/core_void_factor;
     Re_C(i)=rho_C(i)*u_C(i)*Di/muV;
@@ -231,24 +234,20 @@ for i=1:Nz
     else
         ED_cal(i)=0;
     end
-
-    switch lower(m.entraintment_calculation)
-
-        case 'no_entraintment'
-            D(i)=0;
-            ED(i)=0;
-
-        case 'cal_entraintment'
-            D(i)=k_D(i)*C_ED(i);
-            ED(i)=ED_cal(i);
+    if model.calculate_entraintment_0 == true
+        D(i)=k_D(i)*C_ED(i);
+        ED(i)=ED_cal(i);
+    else
+        D(i)=0;
+        ED(i)=0;
     end
+
     %% heat transfer correlations
     Re(i)=rhoL*u_L(i)*Di/muL;
     Pr_LF(i)=muL*(cpL)/kL;
     Pr_C(i)=muV*(cpV)/kV;
 
-    h_L(i)=(kL/Di)*(0.023*(max(Re(i),1e-12)^0.8)*(Pr_LF(i)^0.4))/1e3;
-    h_V(i)=(kV/Di)*(0.023*(max(Re_C(i),1e-12)^0.8)*(Pr_C(i)^0.4))/1e3;
+ 
 
     Nu_C(i)=0.023*(abs(Re_C(i)+1e-6)^0.8)*(Pr_C(i)^0.4);
 
@@ -258,45 +257,55 @@ for i=1:Nz
     
     X_vap(i)=min(0.9999,max(1e-4,G_V(i)/(G_V(i)+G_L(i)+G_ED(i)+1e-20)));
     X_tt(i)=(muL/muV)^0.1*(rhoV/rhoL)^0.5*(((1-X_vap(i))/X_vap(i))^0.9);
-    switch lower(m.h_calculation)
+    switch lower(model.h_calculation)
         case 'correlation_0'
             % Correlation 0 Chen [16]
             h_nb(i)=55*(P/Pc)^0.12*(-log10(P/Pc))^(-0.55)*Mw^(-0.5)*(max(q_r(i),1e-12)^0.67);
+
             Nu_LF(i)=0.0133*(max(Re_LF(i),1e-12)^0.69)*(Pr_LF(i)^0.4);
             h_conv(i)=Nu_LF(i)*kL/max(delta(i),1e-12)/1e3;
             h_nb(i) = h_nb(i) /1e3;
             h(i)=((h_nb(i)^3+h_conv(i)^3)^(1/3))*1e3;
         case 'correlation_1'
             % Correlation 1 Cooper [17]
+            h_L(i)=(kL/Di)*(0.023*(max(Re(i),1e-12)^0.8)*(Pr_LF(i)^0.4));
+            h_V(i)=(kV/Di)*(0.023*(max(Re_C(i),1e-12)^0.8)*(Pr_C(i)^0.4));
             Fr_1 = ((G_L(i)/rhoL)^2)/(g*Di);
             if Fr_1 >= 0.25
                 Fw_1 = 1.0;
             else
                 Fw_1 = 1.32*(Fr_1^0.2);
             end
-
+            h_nb(i) = h_nb(i) /1e3;
             h_conv_1(i) = Fw_1*h_L(i)*(1 + 1.925*(X_tt(i)^(-0.83)));
-            h(i) = (h_nb(i)^2.5 + h_conv_1(i)^2.5)^(1/2.5);
+            h_conv_1(i) = h_conv_1(i) /1e3;
+            h(i) = ((h_nb(i)^2.5 + h_conv_1(i)^2.5)^(1/2.5))*1e3;
         case 'correlation_2' % Chen approximation [18]
             if X_tt(i) >= 9.979
                 Fc_2 = 1.0;
             else
                 Fc_2 = 2.35*(0.213 + 1/X_tt(i))^0.736;
             end
-            
+            h_L(i)=(kL/Di)*(0.023*(max(Re(i),1e-12)^0.8)*(Pr_LF(i)^0.4));
+
             h_conv_2(i) = Fc_2*h_L(i);
-            Sc_2 = 1/(1 + 2.53e-6*(Re(i)*(Fc_2^1.25))^1.17);
-            fun = @(x)Tw_balance(x,T(i),h_conv_2,Sc_2,f,DHvap,q_r);
-       
-            x0 = T;
+            Sc_2 = 1/(1 + 2.53e-6*(max(Re(i),1e-12)*(Fc_2^1.25))^1.17);
+            fun = @(x)Tw_balance(x,T(i),h_conv_2(i),Sc_2,f,q_r(i));
+            options = optimoptions('fsolve', 'Display','off');
+            x0 = T(i);
             [Tw,~,exitflag] = fsolve(fun,x0,options);
+
             if exitflag <0
-                error('error of delta calculation')
+                % error('error of delta calculation')
+                disp('error of correlation_2')
             elseif exitflag == 0
-                error('MaxIterations exceeds MaxFunctionEvaluations')
+                disp('MaxIterations exceeds MaxFunctionEvaluations')
             end
+
             DT_sat_2 = Tw - T(i);
+
             P_w = refpropm('P','T', Tw,'Q',0,f.name);
+
             DP_sat_2 = (P_w - P)*1e3;
             h_nb_2(i) = 0.00122 * ...
                 ((kL^0.79)*((cpL)^0.45)*(rhoL^0.49)) / ...
@@ -304,6 +313,8 @@ for i=1:Nz
                 (DT_sat_2^0.24) * (max(DP_sat_2,0)^0.75);
             h(i) = h_conv_2(i) + Sc_2*h_nb_2(i);
         case 'correlation_3' % Steiner [20]
+            h_L(i)=(kL/Di)*(0.023*(max(Re(i),1e-12)^0.8)*(Pr_LF(i)^0.4));
+            h_V(i)=(kV/Di)*(0.023*(max(Re_C(i),1e-12)^0.8)*(Pr_C(i)^0.4));
             Fs_3 = ( ...
                 ((1-X_vap(i))^1.5 + 1.9*(X_vap(i)^0.6)*((1-X_vap(i))^0.01)*(rhoL/rhoV)^0.35)^(-2.2) ...
                 + (h_V(i)/h_L(i))*(X_vap(i)^0.01)*(1 + 8*((1-X_vap(i))^0.7)*(rhoL/rhoV)^0.67)^(-2.0) ...
@@ -320,11 +331,18 @@ for i=1:Nz
             if q_r(i) <= q_crit_3
                 h_nb_3(i) = 0;
             else
-                h_nb_3(i) = h_pb*Cf_3*(q_r(i)/20)^nf_3;
+                h_nb_3(i) = h_pb*Cf_3*(q_r(i)/1e3/20)^nf_3;
             end
+            h_conv_3(i) = h_conv_3(i)/1e3;
+            h_nb_3(i) = h_nb_3(i);
             h(i) = (h_conv_3(i)^3 + h_nb_3(i)^3)^(1/3);
+            h(i) = h(i) * 1e3;
         case 'correlation_4'
             denom = rhoV - 1.0;
+            h_nb(i)=55*(P/Pc)^0.12*(-log10(P/Pc))^(-0.55)*Mw^(-0.5)*(max(q_r(i),1e-12)^0.67);
+            h_nb(i) = h_nb(i) / 1e3;
+            h_L(i)=(kL/Di)*(0.023*(max(Re(i),1e-12)^0.8)*(Pr_LF(i)^0.4));
+            h_L(i) = h_L(i)/1e3;
             if (1 + X_vap(i)*Pr_LF(i)*(rhoL/denom)) <= 0
                 Flw_4(i) = (1 + X_vap(i)*Pr_LF(i)*(rhoL/(rhoV + 0.0)))^0.35;
             else
@@ -332,6 +350,7 @@ for i=1:Nz
             end
             Slw_4(i) = 1/(1 + 0.055*(Flw_4(i)^0.1)*(Re(i)^0.16));
             h(i) = ((Slw_4(i)*h_nb(i))^2 + (Flw_4(i)*h_L(i))^2)^(1/2);
+            h(i) = h(i) * 1e3;
 
     end
     
@@ -397,7 +416,7 @@ out.T=T;
 
 out.T_C=T_C;
 
-out.T_w=T_w;
+out.Tw=T_w;
 
 end
 
@@ -427,14 +446,16 @@ F = G_L - G_LF;
 end
 
 
-function F = Tw_balance(x,T,h_conv_2,Sc_2,f,DHvap,q_r)
+function F = Tw_balance(x,T,h_conv_2,Sc_2,f,q_r)
 Tw = x;
 DT_sat_2 = Tw - T;
-P_w = refpropm('P','T', Tw,'Q',0,f.name)/1e2; %kPa 转成 bar
-DP_sat_2 = (P_w - P)*1e5;
+
+P_w = refpropm('P','T', Tw,'Q',0,f.name)/1e2; % bar
+
+DP_sat_2 = (P_w - f.P)*1e5;
 h_nb_2 = 0.00122 * ...
-    ((kL^0.79)*((cpL)^0.45)*(rhoL^0.49)) / ...
-    ((sigma^0.5)*(muL^0.29)*(rhoV^0.24)*((DHvap)^0.24)) * ...
+    ((f.kL^0.79)*((f.cpL)^0.45)*(f.rhoL^0.49)) / ...
+    ((f.sigma^0.5)*(f.muL^0.29)*(f.rhoV^0.24)*((f.DHvap)^0.24)) * ...
     (DT_sat_2^0.24) * (max(DP_sat_2,0)^0.75);
 h = h_conv_2 + Sc_2*h_nb_2;
 T_w=T+q_r/max(h,1e-12);

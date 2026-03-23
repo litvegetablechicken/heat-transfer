@@ -3,13 +3,12 @@ function out = Liquid_q(param, q_d, L)
 Nz = param.geom.NzL;
 
 m              = param.liquid.m;
-density        = param.liquid.density;
-viscosity      = param.liquid.viscosity;
-thermal_cond   = param.liquid.thermal_cond;
-heat_capacity  = param.liquid.heat_capacity; % J/kgK
 inner_diameter = param.geom.Di;
 cross_area     = param.geom.A_i;
-
+density        = param.fluid.rhoL;
+viscosity      = param.fluid.muL;
+thermal_cond   = param.fluid.kL;
+heat_capacity = param.fluid.cpL;
 T_in = param.liquid.T_in;
 
 % 网格

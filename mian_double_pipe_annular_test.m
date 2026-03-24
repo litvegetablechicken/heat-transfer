@@ -8,7 +8,7 @@ De = 16.0E-3;
 kw   = 385.0;
 G_ex = 211.0;
 
-NzA = 1001;   % annular 段网格数（单独测试 annular）
+NzA = 101;   % annular 段网格数（单独测试 annular）
 
 param = struct();
 
@@ -30,10 +30,10 @@ param.wall.kw = kw;
 param.liquid.G  = 290; % 你原来的 G（用于算 m = G*A_i）
 param.liquid.Tbp = 28.6+273.15;
 param.liquid.m            = param.liquid.G * param.geom.A_i;
-param.liquid.rhoL     = 1175.4;
-param.liquid.mul    = 0.00015749;
-param.liquid.kL = 0.081729;
-param.liquid.cpL= 1.2749*1000;         % J/kgK
+param.liquid.density     = 1175.4;
+param.liquid.viscosity    = 0.00015749;
+param.liquid.thermal_cond = 0.081729;
+param.liquid.heat_capacity= 1.2749*1000;         % J/kgK
 param.liquid.T_in         = 22 + 273.15;  % K
 % --- external side（全部 SI） ---
 param.external.G_ex = G_ex;

@@ -1,0 +1,12 @@
+diff a/Liquid_q.m b/Liquid_q.m	(rejected hunks)
+@@ -5,6 +5,10 @@
+ m              = param.liquid.m;
+ inner_diameter = param.geom.Di;
+ cross_area     = param.geom.A_i;
++density        = param.fluid.rhoL;
++viscosity      = param.fluid.muL;
++thermal_cond   = param.fluid.kL;
++heat_capacity = param.fluid.cpL;
+ T_in = param.liquid.T_in;
+ 
+ % 网格

@@ -2,13 +2,15 @@ function out = Liquid(param, Tw_d,L)
 Nz = param.geom.NzL;
 
 m              = param.liquid.m;
+density        = param.liquid.density;
+viscosity      = param.liquid.viscosity;
+thermal_cond   = param.liquid.thermal_cond;
+heat_capacity  = param.liquid.heat_capacity; % kJ/kgK
 inner_diameter = param.geom.Di;
 cross_area     = param.geom.A_i;
+
 T_in = param.liquid.T_in;
-density        = param.fluid.rhoL;
-viscosity      = param.liquid.muL;
-thermal_cond   = param.liquid.kL;
-heat_capacity  = param.liquid.cpL; % kJ/kgK
+
 % 网格
 z  = linspace(0, 1, Nz).';
 dz = z(2)-z(1);

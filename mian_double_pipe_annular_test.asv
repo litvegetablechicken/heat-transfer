@@ -30,10 +30,10 @@ param.wall.kw = kw;
 param.liquid.G  = 290; % 你原来的 G（用于算 m = G*A_i）
 param.liquid.Tbp = 28.6+273.15;
 param.liquid.m            = param.liquid.G * param.geom.A_i;
-param.liquid.rhoL     = 1175.4;
-param.liquid.mul    = 0.00015749;
-param.liquid.kL = 0.081729;
-param.liquid.cpL= 1.2749*1000;         % J/kgK
+param.liquid.density     = 1175.4;
+param.liquid.viscosity    = 0.00015749;
+param.liquid.thermal_cond = 0.081729;
+param.liquid.heat_capacity= 1.2749*1000;         % J/kgK
 param.liquid.T_in         = 22 + 273.15;  % K
 % --- external side（全部 SI） ---
 param.external.G_ex = G_ex;
@@ -90,19 +90,45 @@ Boundary.A.G_V = 65.4966;
 
 %% ===== 1) fsolve 初值 =====
 x0 = init_double_pipe_q(param); % 1-Nz 是q_d，Nz+1-2Nz是q_do，2Nz+1 是L_L, 2Nz+2是L_SA 
+G_L = Boundary.A.G_L;
+G_V = Boundary.A.G_V; 
+ratio = sqrt((param.fluid.rhoL*max(G_L,1e-12))/(param.fluid.rhoV*G_V))*Di^2;
 
+coeff = (1/(0.95e-2+342.55e-2*ratio)-1);
 
+G_ED=max(G_L,1e-12)/max(coeff,1e-12);
+m_L=G_L*param.geom.A_i;
+m_V=G_V*param.geom.A_i;
+m_ED=G_ED*param.geom.A_i;
+
+rho_C=(G_ED+G_V)/(G_ED/param.fluid.rhoED+G_V/param.fluid.rhoV+1e-20);
+w_frac_L = m_L / param.fluid.rhoL / (m_V/param.fluid.rhoV + m_ED / param.fluid.rhoED +  m_L / param.fluid.rhoL );
+delta =   0.5*Di*w_frac_L/2;
+delta0 = ones(2,1) * delta0;
+% 初始化
+param_ini = param;
+param_ini.geom.NzA = 2;
+param_ini.geom.Nz  = 2;
+L_A_ini = 1e-3;
+x0 = [ones(4,1)*x0(1);delta0];
 opts = optimoptions('fsolve', ...
     'Display','iter', ...
-    'FunctionTolerance',1e-20, ...
+    'FunctionTolerance',1e-10, ...
     'StepTolerance',1e-20, ...
-    'MaxIterations',200, ...
-    'MaxFunctionEvaluations',2e5,...
+    'MaxIterations', 1e10,...
+    'MaxFunctionEvaluations',1e10,...
     UseParallel=true);
-
-[xsol,feval,exitflag,output] = fsolve(@(x) double_pipe_residual_A_q(x, param,Boundary), x0, opts);
-
+[xsol,feval,exitflag,output] = fsolve(@(x) double_pipe_residual_A_q_for_ini(x, param_ini,Boundary,L_A_ini), x0, opts);
 disp(output.message); fprintf("exitflag=%d\n",exitflag);
+%% 开始计算
+
+q_d0  = ones(NzA,1) * xsol(1);
+q_do0 = ones(NzA,1) * xsol(3);
+x0 =  ones(NzA,1) * xsol(1);
+
 q_d = xsol(1:NzA);
 q_do = xsol(NzA + 1 : 2*NzA);
-L_L  = xsol(end-1);
+L_A  = xsol(end);
+out_A = annular_heat_transfer(param, q_d,Boundary,L_A);
+out_wall   = wall_q(param, q_d, q_do);
+outE       = external_tube_q(param, q_do, L_A,NzA);

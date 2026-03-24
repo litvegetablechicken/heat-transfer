@@ -1,0 +1,12 @@
+diff a/init_double_pipe_q.m b/init_double_pipe_q.m	(rejected hunks)
+@@ -6,6 +6,10 @@
+ DT = param.external.T_in_ex - param.liquid.T_in;
+ 
+ %% 取液体侧物性估算 h
++rho = param.fluid.rhoL;
++mu  = param.fluid.muL;
++k   = param.fluid.kL;
++cp  = param.fluid.cpL;
+ 
+ Di = param.geom.Di;
+ A  = param.geom.A_i;

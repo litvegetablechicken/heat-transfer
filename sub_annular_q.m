@@ -11,17 +11,17 @@ if numel(q_r) ~= Nz
 end
 
 
-Tbp = param.fluid.Tbp;
+Tbp = param.liquid.Tbp;
 T   = ones(Nz,1) * Tbp;
 
 
-P    = param.fluid.P;
-Pc   = param.fluid.Pc;
-Mw   = param.fluid.Mw;
-DH   = param.fluid.DH_vap;  % J/kg
-g    = param.fluid.g;
-rhoL = param.fluid.rhoL;
-rhoV = param.fluid.rhoV;
+P    = param.sub_annular.P;
+Pc   = param.sub_annular.Pc;
+Mw   = param.sub_annular.Mw;
+DH   = param.sub_annular.DH_vap;  % J/kg
+g    = param.sub_annular.g;
+rhoL = param.sub_annular.rhoL;
+rhoV = param.sub_annular.rhoV;
 
 %% ---- 1) 网格 ----
 z  = linspace(0, 1, Nz).';

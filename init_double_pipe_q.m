@@ -6,10 +6,11 @@ Nz = param.geom.Nz;
 DT = param.external.T_in_ex - param.liquid.T_in;
 
 %% 取液体侧物性估算 h
-rho = param.fluid.rhoL;
-mu  = param.fluid.muL;
-k   = param.fluid.kL;
-cp  = param.fluid.cpL;
+rho = param.liquid.density;
+mu  = param.liquid.viscosity;
+k   = param.liquid.thermal_cond;
+cp  = param.liquid.heat_capacity;
+
 
 Di = param.geom.Di;
 A  = param.geom.A_i;
@@ -36,7 +37,7 @@ q_init = h * DT;
 %% 构造向量
 q_d0  = q_init * ones(Nz,1);
 q_do0 = q_init * ones(Nz,1);
-
+delta0 = [];
 %% 长度初值
 L_L = []; L_SA = []; L_A = [];L_M=[];L_V=[];
 if isfield(param.geom,'L')
@@ -49,8 +50,10 @@ else
         L_SA = 1;   % 默认1 m
     end
     if isfield(param.geom,'NzA')
+        % q_d0 = param.annular.q_d0;
+        % q_do0 = param.annular.q_do0;
+        % delta0 = param.annular.delta0;
         A = param.fluid.DH_vap * m / h /20;
-
         L_A = A / pi /Di;   % 默认1 m
     end
     if isfield(param.geom,'NzM')
@@ -61,6 +64,6 @@ else
 
     end
     L0 = [L_L;L_SA;L_A;L_M;L_V];
-    x0 = [q_d0; q_do0;L0];
+    x0 = [q_d0; q_do0;delta0;L0];
 end
 end

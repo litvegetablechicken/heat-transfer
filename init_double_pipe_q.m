@@ -1,9 +1,9 @@
-function x0 = init_double_pipe_q(param)
+function x0 = init_double_pipe_q(param,Th,Tl)
 
 Nz = param.geom.Nz;
 
 %% 温差
-DT = param.external.T_in_ex - param.liquid.T_in;
+DT = Th-Tl;
 
 %% 取液体侧物性估算 h
 rho = param.liquid.density;

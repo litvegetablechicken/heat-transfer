@@ -304,9 +304,9 @@ for i=1:Nz
 
             DT_sat_2 = Tw - T(i);
 
-            P_w = refpropm('P','T', Tw,'Q',0,f.name);
+            P_w = refpropm('P','T', Tw,'Q',0,f.name)*1e2;% 输出kPa
 
-            DP_sat_2 = (P_w - P)*1e3;
+            DP_sat_2 = (P_w - P*1e5);
             h_nb_2(i) = 0.00122 * ...
                 ((kL^0.79)*((cpL)^0.45)*(rhoL^0.49)) / ...
                 ((sigma^0.5)*(muL^0.29)*(rhoV^0.24)*((DHvap)^0.24)) * ...

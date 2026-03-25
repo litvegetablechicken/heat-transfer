@@ -43,8 +43,10 @@ dir              = 1; % 1 顺流 -1 逆流
 NzL = 1001;          % Liquid 段网格数
 NzSA = 1001;          % sub_annular 段网格数
 NzA = 101;           % annular 段网格数
+NzM = 101;
 Nz = NzL + NzSA;
 %% ========= 0) 统一参数 param =========
+% 先算liquid和SA
 param = struct();
 
 param.geom.NzL = NzL;
@@ -180,7 +182,7 @@ opts = optimoptions('fsolve', ...
     'Display','iter', ...
     'FunctionTolerance',1e-8, ...
     'StepTolerance',1e-15, ...
-    'MaxIterations',1e3, ...
+    'MaxIterations',200, ...
     'MaxFunctionEvaluations',2e10, ...
     'UseParallel',true);
 
@@ -191,7 +193,35 @@ q_d  = x_sol(1:NzA);
 q_do = x_sol(NzA+1 : NzA+NzA);
 L_A = x_sol(end);
 out_A = annular_heat_transfer(param, q_d,Boundary,L_A);
+out_wall_A   = wall_q(param, q_d, q_do);
+outE_A       = external_tube_q(param, q_do, L_A,NzA);
+
+%% mist
+param.geom.NzM = NzM;
+param.geom = rmfield(param.geom, 'NzA');
+param.geom.Nz = NzM;
+Boundary.Mist.G_L0 = out_A.G_L(end);
+Boundary.Mist.G_V0 = out_A.G_V(end);
+Boundary.Mist.G_ED0 = out_A.G_ED(end);
+
+x0 = init_double_pipe_q(param,outE_A.T_ex(end),Tbp); % 1-Nz 是q_d，Nz+1-2Nz是q_do，2Nz+1 是L_L, 2Nz+2是L_SA 
+
+
+opts = optimoptions('fsolve', ...
+    'Display','iter', ...
+    'FunctionTolerance',1e-10, ...
+    'StepTolerance',1e-20, ...
+    'MaxIterations',200, ...
+    'MaxFunctionEvaluations',2e5,...
+    UseParallel=true);
+
+[xsol,feval,exitflag,output] = fsolve(@(x)double_pipe_mist_q(x, param,Boundary), x0, opts);
+
+q_d  = xsol(1:NzM);
+q_do = xsol(NzM+1 : NzM+NzM);
+L_M = xsol(end);
+out_M = mist_q(param, q_d,Boundary,L_M);
 out_wall   = wall_q(param, q_d, q_do);
-outE       = external_tube_q(param, q_do, L_A,NzA);
+outE       = external_tube_q(param, q_do, L_M,NzM);
 
 

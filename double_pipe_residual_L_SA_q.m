@@ -33,5 +33,5 @@ r_dT_SA  = out_wall_SA.dT_diff;                                   % Nz x 1
 r_dT2_SA = (out_SA.Tw - outE_SA.Tw) - out_wall_SA.dT;            % Nz x 1
 
 %% 总误差
-F = [[r_dT_L;r_dT_SA];[r_dT2_L;r_dT2_SA];r_bp;r_term];
+F = [[r_dT_L;r_dT_SA];[r_dT2_L;r_dT2_SA];r_bp*10;r_term*10];
 end

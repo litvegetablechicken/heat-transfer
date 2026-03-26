@@ -183,7 +183,7 @@ for i=1:Nz
     rho_C(i)=(G_ED(i)+G_V(i))/(G_ED(i)/rhoED+G_V(i)/rhoV+1e-20);
     w_frac_L = m_L(i) / rhoL / (m_V(i)/rhoV + m_ED(i) / rhoED +  m_L(i) / rhoL );
     % 计算通过三角关系计算液膜厚度
-    delta_0 = 0.5*Di*w_frac_L;
+    delta_0 = 0.5*Di*w_frac_L/10;
     if model.delta_calculation == true
         options = optimoptions('fsolve', 'Display','off');
         [delta_tem, ~, exitflag] = fsolve(@(x)cal_delta(x,Di,G_ED(i),rhoED,G_V(i),rhoV,rhoL,u_L(i),muL,muV,rho_C(i),G_L(i)),delta_0,options);

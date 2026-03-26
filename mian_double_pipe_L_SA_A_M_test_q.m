@@ -42,8 +42,8 @@ dir              = 1; % 1 顺流 -1 逆流
 
 NzL = 1001;          % Liquid 段网格数
 NzSA = 1001;          % sub_annular 段网格数
-NzA = 101;           % annular 段网格数
-NzM = 101;
+NzA = 1001;           % annular 段网格数
+NzM = 1001;
 Nz = NzL + NzSA;
 %% ========= 0) 统一参数 param =========
 % 先算liquid和SA

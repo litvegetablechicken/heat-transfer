@@ -10,6 +10,6 @@ outE       = external_tube_q(param, q_do, L_A,NzA);
 
 r_dT_w  = out_wall.dT_diff;                                   % Nz x 1
 r_dT2 = (out_A.Tw - outE.Tw) - out_wall.dT;            % Nz x 1
-r_term = out_A.term;
+r_term = out_A.term*10;
 F = [r_dT_w; r_dT2;r_term];
 end

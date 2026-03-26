@@ -8,7 +8,7 @@ De = 16.0E-3;
 kw   = 385.0;
 G_ex = 211.0;
 
-NzA = 101;   % annular 段网格数（单独测试 annular）
+NzA = 1001;   % annular 段网格数（单独测试 annular）
 
 param = struct();
 
@@ -45,7 +45,7 @@ param.external.thermal_cond_ex  = 0.633815;
 param.external.heat_capacity_ex = 4.18095625e3;   % J/kg/K  ✅
 param.external.dir              = 1;
 param.external.energy_balance_cal = "energy_bal";
-param.external.T_in_ex          = 322.6129315; % To be modified
+param.external.T_in_ex          = 322.61295; % To be modified
 
 % Model options
 
@@ -89,7 +89,7 @@ Boundary.A.G_V = 65.4966;
 
 
 %% ===== 1) fsolve 初值 =====
-x0 = init_double_pipe_q(param); % 1-Nz 是q_d，Nz+1-2Nz是q_do，2Nz+1 是L_L, 2Nz+2是L_SA 
+x0 = init_double_pipe_q(param,param.external.T_in_ex ,param.fluid.Tbp); % 1-Nz 是q_d，Nz+1-2Nz是q_do，2Nz+1 是L_L, 2Nz+2是L_SA 
 
 
 opts = optimoptions('fsolve', ...

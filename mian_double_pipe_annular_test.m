@@ -109,3 +109,32 @@ L_A  = xsol(end);
 out_A = annular_heat_transfer(param, q_d,Boundary,L_A);
 out_wall   = wall_q(param, q_d, q_do);
 outE       = external_tube_q(param, q_do, L_A,NzA);
+%% mist
+NzM = 1001;
+param.geom.NzM = NzM;
+param.geom = rmfield(param.geom, 'NzA');
+param.geom.Nz = NzM;
+Boundary.Mist.G_L0 = out_A.G_L(end);
+Boundary.Mist.G_V0 = out_A.G_V(end);
+Boundary.Mist.G_ED0 = out_A.G_ED(end);
+param.external.T_in_ex          = outE.T_ex(end); % To be modified
+
+x0 = init_double_pipe_q(param,outE.T_ex(end),param.liquid.Tbp); % 1-Nz 是q_d，Nz+1-2Nz是q_do，2Nz+1 是L_L, 2Nz+2是L_SA 
+
+
+opts = optimoptions('fsolve', ...
+    'Display','iter', ...
+    'FunctionTolerance',1e-10, ...
+    'StepTolerance',1e-20, ...
+    'MaxIterations',200, ...
+    'MaxFunctionEvaluations',2e5,...
+    UseParallel=true);
+
+[xsol,feval,exitflag,output] = fsolve(@(x)double_pipe_mist_q(x, param,Boundary), x0, opts);
+
+q_d_A  = xsol(1:NzM);
+q_do_A = xsol(NzM+1 : NzM+NzM);
+L_M = xsol(end);
+out_M = mist_q(param, q_d_A,Boundary,L_M);
+out_wall_M   = wall_q(param, q_d_A, q_do_A);
+outE_M      = external_tube_q(param, q_do_A, L_M,NzM);

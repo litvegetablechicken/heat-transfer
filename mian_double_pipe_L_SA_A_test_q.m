@@ -162,6 +162,7 @@ outE_L       = external_tube_q(param, q_do_L, L_L,NzL);
 % SA
 Boundary.SA.G_L = out_liquid.G;
 Boundary.SA.G_V = 0;
+param.external.T_in_ex = outE_L.T_ex(end);
 out_SA = sub_annular_q(param,Boundary,q_d_SA,L_SA);
 out_wall_SA   = wall_q(param, q_d_SA, q_do_SA);
 outE_SA       = external_tube_q(param, q_do_SA, L_SA, NzSA);

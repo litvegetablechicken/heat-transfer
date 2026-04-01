@@ -6,7 +6,7 @@ q_do = x(NzSA+1 : NzSA+NzSA);
 L_SA = x(end);
 out_SA = sub_annular_q(param,Boundary,q_d,L_SA);
 out_wall   = wall_q(param, q_d, q_do);
-outE       = external_tube_q(param, q_do, L_SA);
+outE       = external_tube_q(param, q_do, L_SA,NzSA);
 
 r_dT_w  = out_wall.dT_diff;                                   % Nz x 1
 r_dT2 = (out_SA.Tw - outE.Tw) - out_wall.dT;            % Nz x 1

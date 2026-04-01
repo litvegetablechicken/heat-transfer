@@ -1,7 +1,21 @@
-function x0 = init_double_pipe_q(param,Th,Tl)
+function x0 = init_double_pipe_q(param,Th,Tl,zone)
 
-Nz = param.geom.Nz;
+if zone =='L'
+    Nz = param.geom.NzL;
+end
+if zone == 'SA'
+    Nz = param.geom.NzSA;
+end
+if zone == 'A'
+    Nz = param.geom.NzA;
 
+end
+if zone =='M'
+    Nz = param.geom.NzM;
+end
+if zone =='V'
+    Nz = param.geom.NzV;
+end
 %% 温差
 DT = Th-Tl;
 
@@ -39,31 +53,26 @@ q_d0  = q_init * ones(Nz,1);
 q_do0 = q_init * ones(Nz,1);
 delta0 = [];
 %% 长度初值
-L_L = []; L_SA = []; L_A = [];L_M=[];L_V=[];
-if isfield(param.geom,'L')
-    x0 = [q_d0; q_do0];
-else
-    if isfield(param.geom,'NzL')
-        L_L = 1;   % 默认1 m
-    end
-    if isfield(param.geom,'NzSA')
-        L_SA = 1;   % 默认1 m
-    end
-    if isfield(param.geom,'NzA')
-        % q_d0 = param.annular.q_d0;
-        % q_do0 = param.annular.q_do0;
-        % delta0 = param.annular.delta0;
-        A = param.fluid.DH_vap * m / h /20;
-        L_A = A / pi /Di;   % 默认1 m
-    end
-    if isfield(param.geom,'NzM')
-        L_M = 1;   % 默认1 m
-    end
-    if isfield(param.geom,'NzV')
-        L_V = 1;   % 默认1 m
 
-    end
-    L0 = [L_L;L_SA;L_A;L_M;L_V];
-    x0 = [q_d0; q_do0;delta0;L0];
+if zone =='L'
+    L = 1;   % 默认1 m
 end
+if zone == 'SA'
+    L = 1;   % 默认1 m
+end
+if zone == 'A'
+    % q_d0 = param.annular.q_d0;
+    % q_do0 = param.annular.q_do0;
+    % delta0 = param.annular.delta0;
+    A = param.fluid.DH_vap * m / h /20;
+    L = A / pi /Di;   % 默认1 m
+end
+if zone =='M'
+    L = 1;   % 默认1 m
+end
+if zone =='V'
+    L = [];   % 默认1 m
+end
+x0 = [q_d0; q_do0;delta0;L];
+
 end

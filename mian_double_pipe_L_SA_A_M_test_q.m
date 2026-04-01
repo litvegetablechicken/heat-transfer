@@ -203,6 +203,7 @@ param.geom.Nz = NzM;
 Boundary.Mist.G_L0 = out_A.G_L(end);
 Boundary.Mist.G_V0 = out_A.G_V(end);
 Boundary.Mist.G_ED0 = out_A.G_ED(end);
+param.external.T_in_ex          = outE_A.T_ex(end); % To be modified
 
 x0 = init_double_pipe_q(param,outE_A.T_ex(end),Tbp); % 1-Nz 是q_d，Nz+1-2Nz是q_do，2Nz+1 是L_L, 2Nz+2是L_SA 
 
@@ -222,6 +223,6 @@ q_do = xsol(NzM+1 : NzM+NzM);
 L_M = xsol(end);
 out_M = mist_q(param, q_d,Boundary,L_M);
 out_wall   = wall_q(param, q_d, q_do);
-outE       = external_tube_q(param, q_do, L_M,NzM);
+outE_M       = external_tube_q(param, q_do, L_M,NzM);
 
 

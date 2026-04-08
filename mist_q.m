@@ -1,7 +1,7 @@
 function out = mist_q(param, q_r,Boundary,L)
 
 Nz = param.geom.NzM;
-z  = linspace(0,1,Nz);
+z  = linspace(0,1,Nz)';
 dz = z(2)-z(1);
 
 Di = param.geom.Di;
@@ -102,6 +102,8 @@ end
 % 输出
 % ---------------------------
 out.z   = z * L;
+
+out.T =ones(Nz,1)*T;
 out.G_L = G_L;
 out.G_V = G_V;
 out.G_ED = G_ED;

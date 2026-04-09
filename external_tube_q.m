@@ -14,8 +14,11 @@ Do  = param.geom.Do;
 
 dir  = param.external.dir;
 mode = string(param.external.energy_balance_cal);
-Tin  = param.external.T_in_ex;
-
+if dir> 0
+T_left  = param.external.T_in_ex;
+else 
+    T_left = param.external.T_left;
+end
 % 已知热流 q_ex
 q_ex = q_ex_in(:);
 if numel(q_ex) ~= Nz
@@ -42,7 +45,7 @@ T_ex = zeros(Nz,1);
 Tw   = zeros(Nz,1);
 h_ex = zeros(Nz,1);
 
-T_ex(1) = Tin;
+T_ex(1) = T_left;
 
 cpJ  = cp;
 geom = (De^2 - Do^2);

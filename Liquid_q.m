@@ -10,7 +10,7 @@ heat_capacity  = param.liquid.heat_capacity; % J/kgK
 inner_diameter = param.geom.Di;
 cross_area     = param.geom.A_i;
 
-T_in = param.liquid.T_in;
+T_left = param.liquid.T_in;
 
 % 网格
 z  = linspace(0, 1, Nz).';
@@ -38,7 +38,7 @@ T   = zeros(Nz,1);
 Tw  = zeros(Nz,1);
 h_z = zeros(Nz,1);
 
-T(1) = T_in;
+T(1) = T_left;
 cpJ  = heat_capacity;
 
 for k = 1:Nz-1

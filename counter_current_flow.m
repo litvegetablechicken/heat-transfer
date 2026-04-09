@@ -1,3 +1,4 @@
+
 clear; clc; close all
 tic
 %% ===== 0) 参数与网格设置 =====
@@ -21,13 +22,13 @@ rhoV = 49.148;
 muL  = 0.00015749;      % Pa*s
 kL   = 0.081729; % W/m/K  (占位)
 cpL  = 1.2749*1e3; % J/kg/K
-muV  = 0.000012712;          % Pa*s  
+muV  = 0.000012712;          % Pa*s
 kV   = 0.011696;            % W/m/K  (占位)
 cpV  = 0.89952*1e3;           % J/kg/K  (占位)
 sigma = 0.0075698;     % N/m (占位)
 
 rhoex = 989.976875; % kg/m3
-muex = 0.000610821; %  Pas 
+muex = 0.000610821; %  Pas
 kex = 0.633815; % w/m/K
 cpex = 4.18095625*1000; % J/kg
 A_ant = 9.357495827;     % Antoine A (log10(P_bar)=A - B/(C+T_C))
@@ -36,26 +37,29 @@ C_ant = -14.964;   % Antoine C
 Tbp = 28.6 + 273.15;
 
 % flow
-G  = 289.0;
-G_ex = 211.0; 
-T_in = 22 + 273.15; %K
-T_in_ex = 55.5+273.15; % K
-dir              = 1; % 1 顺流 -1 逆流
+G  = 290.0;
+G_ex = 214.0;
+T_in = 27 + 273.15; %K
+T_in_ex = 56 + 273.15; % K
+dir              = -1; % 1 顺流 -1 逆流
 
-NzL = 1001;          % Liquid 段网格数
-NzSA = 1001;          % sub_annular 段网格数
-NzA = 1001;           % annular 段网格数
-NzM = 1001;
-Nz = NzL + NzSA;
+NzL = 101;          % Liquid 段网格数
+NzSA = 101;          % sub_annular 段网格数
+NzA = 101;           % annular 段网格数
+NzM = 101;
+NzV = 101;
 %% ========= 0) 统一参数 param =========
 % 先算liquid和SA
 param = struct();
+param.model.delta_calculation        = true;
+param.model.h_calculation            = h_calculation;
+param.model.calculate_entraintment_0 = true;
+param.vapor.l = L_vapor;
 
 param.geom.NzL = NzL;
 param.geom.NzSA = NzSA;
 %param.geom.NzA = NzA;
 
-param.geom.Nz   = Nz;
 
 param.geom.Di = Di;
 param.geom.Do = Do;
@@ -101,9 +105,7 @@ param.sub_annular.rhoV    = rhoV;   % 汽相密度
 
 % annular
 %  2  Fluid properties (example: R245fa)
-param.model.delta_calculation        = true;
-param.model.h_calculation            = h_calculation;
-param.model.calculate_entraintment_0 = true;
+
 
 param.fluid.name = name;
 param.fluid.Tbp = Tbp;
@@ -133,10 +135,55 @@ param.fluid.C_ant = C_ant;   % Antoine C
 
 
 %% ===== 1) Liquid
-x0 = init_double_pipe_q(param,T_in_ex,T_in,'L'); % 1-Nz 是q_d，Nz+1-2Nz是q_do，2Nz+1 是L_L, 2Nz+2是L_SA 
-
+% initial T_ex_out
+Q = DH_vap * param.liquid.m;
+T_ex_out_0 = T_in_ex - Q / (cpex * param.external.m_ex)-2;
+% T_ex_out_0=307.80255;
+fun = @(x) residual(x,param,NzL,NzSA,NzA,NzM,NzV,T_in_ex);
 opts = optimoptions('fsolve', ...
     'Display','iter', ...
+    'FunctionTolerance',1e-8, ...
+    'StepTolerance',1e-15, ...
+    'MaxIterations',2000, ...
+    'MaxFunctionEvaluations',2e10);
+T_ex_o = fsolve(fun,T_ex_out_0,opts);
+out=main(T_ex_o,param,NzL,NzSA,NzA,NzM,NzV);
+out_liquid = out.out_liquid;
+out_SA     = out.out_SA;
+out_A      = out.out_A;
+out_M      = out.out_M;
+out_V      = out.out_V;
+L_L        = out.L_L;
+L_SA       = out.L_SA;
+L_A        = out.L_A;
+L_M        = out.L_M;
+outE_L     = out.outE_L;
+outE_SA    = out.outE_SA;
+outE_A     = out.outE_A;
+outE_M     = out.outE_M;
+outE_V     = out.outE_V;
+L_total    = out.L_total;
+x =[out_liquid.z;out_SA.z + L_L;out_A.z + (L_L+L_SA);out_M.z + (L_L+ L_SA + L_A);out_V.z + (L_L+L_SA+L_A+L_M)];
+T = [out_liquid.T;out_SA.T;out_A.T;out_M.T;out_V.T];
+Tex = [outE_L.T_ex;outE_SA.T_ex;outE_A.T_ex;outE_M.T_ex;outE_V.T_ex];
+plot(x,T,x,Tex)
+
+
+%% residual function
+function F = residual(x,param,NzL,NzSA,NzA,NzM,NzV,T_in_ex)
+out=main(x,param,NzL,NzSA,NzA,NzM,NzV);
+
+F = out.outE_V.T_ex(end) - T_in_ex;
+end
+function out=main(x,param,NzL,NzSA,NzA,NzM,NzV)
+T_ex_out = x;
+param.liquid.T_ex_out = T_ex_out;
+param.external.T_left = param.liquid.T_ex_out;
+
+x0 = init_double_pipe_q(param,T_ex_out,param.liquid.T_in,'L'); % 1-Nz 是q_d，Nz+1-2Nz是q_do，2Nz+1 是L_L, 2Nz+2是L_SA
+
+opts = optimoptions('fsolve', ...
+    'Display','off', ...
     'FunctionTolerance',1e-8, ...
     'StepTolerance',1e-15, ...
     'MaxIterations',200, ...
@@ -145,7 +192,7 @@ opts = optimoptions('fsolve', ...
 
 [x_sol,~,exitflag,output] = fsolve(@(x) double_pipe_residual_L_q(x, param), x0, opts);
 
-disp(output.message); fprintf("exitflag=%d\n",exitflag);
+% disp(output.message); fprintf("exitflag=%d\n",exitflag);
 
 % 解析结果
 q_d = x_sol(1:NzL);
@@ -161,12 +208,12 @@ outE_L       = external_tube_q(param, q_do, L_L,NzL);
 %% SA
 Boundary.SA.G_L = out_liquid.G;
 Boundary.SA.G_V = 0;
-param.external.T_in_ex = outE_L.T_ex(end);
+param.external.T_left = outE_L.T_ex(end);
 
-x0 = init_double_pipe_q(param,T_in_ex,T_in,'SA'); % 1-Nz 是q_d，Nz+1-2Nz是q_do，2Nz+1 是L_L, 2Nz+2是L_SA 
+x0 = init_double_pipe_q(param,param.external.T_left,param.fluid.Tbp,'SA'); % 1-Nz 是q_d，Nz+1-2Nz是q_do，2Nz+1 是L_L, 2Nz+2是L_SA
 
 opts = optimoptions('fsolve', ...
-    'Display','iter', ...
+    'Display','off', ...
     'FunctionTolerance',1e-8, ...
     'StepTolerance',1e-15, ...
     'MaxIterations',200, ...
@@ -175,7 +222,7 @@ opts = optimoptions('fsolve', ...
 
 [x_sol,~,exitflag,output] = fsolve(@(x) double_pipe_residual_SA_q(x, param,Boundary), x0, opts);
 
-disp(output.message); fprintf("exitflag=%d\n",exitflag);
+% disp(output.message); fprintf("exitflag=%d\n",exitflag);
 q_d_SA  = x_sol(1:NzSA);
 q_do_SA = x_sol(NzSA+1 : NzSA+NzSA);
 L_SA = x_sol(end);
@@ -186,23 +233,23 @@ outE_SA       = external_tube_q(param, q_do_SA, L_SA, NzSA);
 param.geom.NzA = NzA;
 
 param.geom.Nz = NzA;
-param.external.T_in_ex = outE_SA.T_ex(end);
+param.external.T_left = outE_SA.T_ex(end);
 Boundary.A.G_L = out_SA.G_L(end);
 Boundary.A.G_V = out_SA.G_V(end);
-disp("------------开始计算annular区域------------")
-x0 = init_double_pipe_q(param,outE_SA.T_ex(end),Tbp,'A'); % 1-Nz 是q_d，Nz+1-2Nz是q_do，2Nz+1 是L_L, 2Nz+2是L_SA 
+% disp("------------开始计算annular区域------------")
+x0 = init_double_pipe_q(param,outE_SA.T_ex(end),param.fluid.Tbp,'A'); % 1-Nz 是q_d，Nz+1-2Nz是q_do，2Nz+1 是L_L, 2Nz+2是L_SA
 
 opts = optimoptions('fsolve', ...
-    'Display','iter', ...
+    'Display','off', ...
     'FunctionTolerance',1e-8, ...
     'StepTolerance',1e-15, ...
     'MaxIterations',200, ...
     'MaxFunctionEvaluations',2e10, ...
     'UseParallel',true);
 
-[x_sol,f,exitflag,output] = fsolve(@(x) double_pipe_residual_A_q(x, param,Boundary), x0, opts);
+[x_sol,~,exitflag,output] = fsolve(@(x) double_pipe_residual_A_q(x, param,Boundary), x0, opts);
 
-disp(output.message); fprintf("exitflag=%d\n",exitflag);
+% disp(output.message); fprintf("exitflag=%d\n",exitflag);
 q_d  = x_sol(1:NzA);
 q_do = x_sol(NzA+1 : NzA+NzA);
 L_A = x_sol(end);
@@ -218,20 +265,20 @@ param.geom.Nz = NzM;
 Boundary.Mist.G_L0 = out_A.G_L(end);
 Boundary.Mist.G_V0 = out_A.G_V(end);
 Boundary.Mist.G_ED0 = out_A.G_ED(end);
-param.external.T_in_ex          = outE_A.T_ex(end); % To be modified
+param.external.T_left          = outE_A.T_ex(end); % To be modified
 
-x0 = init_double_pipe_q(param,outE_A.T_ex(end),Tbp,'M'); % 1-Nz 是q_d，Nz+1-2Nz是q_do，2Nz+1 是L_L, 2Nz+2是L_SA 
+x0 = init_double_pipe_q(param,outE_A.T_ex(end),param.fluid.Tbp,'M'); % 1-Nz 是q_d，Nz+1-2Nz是q_do，2Nz+1 是L_L, 2Nz+2是L_SA
 
 
 opts = optimoptions('fsolve', ...
-    'Display','iter', ...
+    'Display','off', ...
     'FunctionTolerance',1e-10, ...
     'StepTolerance',1e-20, ...
     'MaxIterations',200, ...
     'MaxFunctionEvaluations',2e5,...
     UseParallel=true);
 
-[xsol,feval,exitflag,output] = fsolve(@(x)double_pipe_mist_q(x, param,Boundary), x0, opts);
+xsol = fsolve(@(x)double_pipe_mist_q(x, param,Boundary), x0, opts);
 
 q_d  = xsol(1:NzM);
 q_do = xsol(NzM+1 : NzM+NzM);
@@ -240,32 +287,46 @@ out_M = mist_q(param, q_d,Boundary,L_M);
 out_wall   = wall_q(param, q_d, q_do);
 outE_M       = external_tube_q(param, q_do, L_M,NzM);
 
+%% vapor
 
-NzV = 1001;
 param.geom.NzV = NzV;
-param.external.T_in_ex          = outE_M.T_ex(end); % To be modified
-x0 = init_double_pipe_q(param,outE_M.T_ex(end),Tbp,'V'); % 1-Nz 是q_d，Nz+1-2Nz是q_do，2Nz+1 是L_L, 2Nz+2是L_SA 
+param.external.T_left          = outE_M.T_ex(end); % To be modified
+x0 = init_double_pipe_q(param,outE_M.T_ex(end),param.fluid.Tbp,'V'); % 1-Nz 是q_d，Nz+1-2Nz是q_do，2Nz+1 是L_L, 2Nz+2是L_SA
 
 opts = optimoptions('fsolve', ...
-    'Display','iter', ...
+    'Display','off', ...
     'FunctionTolerance',1e-8, ...
     'StepTolerance',1e-15, ...
     'MaxIterations',2000, ...
     'MaxFunctionEvaluations',2e10, ...
     'UseParallel',true);
 
-[x_sol,~,exitflag,output] = fsolve(@(x) double_pipe_residual_vapor(x, param,L_vapor,Tbp), x0, opts);
+[x_sol] = fsolve(@(x) double_pipe_residual_vapor(x, param,param.vapor.l ,param.fluid.Tbp), x0, opts);
 % 解析结果
 q_d_sol  = x_sol(1:NzV);
 q_do_sol = x_sol(NzV+1:2*NzV);
 
 % 后处理
-L_total = L_L+L_SA+L_A+L_M + L_vapor;
-out_V = Vapor_q(param, q_d_sol, L_vapor,Tbp);
+L_total = L_L+L_SA+L_A+L_M + param.vapor.l ;
+out_V = Vapor_q(param, q_d_sol, param.vapor.l ,param.fluid.Tbp);
 out_wall_V   = wall_q(param, q_d_sol, q_do_sol);
-outE_V       = external_tube_q(param, q_do_sol, L_vapor,NzV);
-x =[out_liquid.z;out_SA.z + L_L;out_A.z + (L_L+L_SA);out_M.z + (L_L+ L_SA + L_A);out_V.z + (L_L+L_SA+L_A+L_M)];
-T = [out_liquid.T;out_SA.T;out_A.T;out_M.T;out_V.T];
-Tex = [outE_L.T_ex;outE_SA.T_ex;outE_A.T_ex;outE_M.T_ex;outE_V.T_ex];
-plot(x,T,x,Tex)
+outE_V       = external_tube_q(param, q_do_sol, param.vapor.l,NzV);
+out.out_liquid = out_liquid;
+out.out_SA=out_SA;
+out.out_A=out_A;
+out.out_M=out_M;
+out.out_V=out_V;
+out.L_L=L_L;
+out.L_SA=L_SA;
+out.L_A=L_A;
+out.L_M=L_M;
+out.outE_L=outE_L;
+out.outE_SA=outE_SA;
+out.outE_A=outE_A;
+out.outE_M=outE_M;
+out.outE_V=outE_V;
+out.L_total = L_total;
+end
+
+
 toc
